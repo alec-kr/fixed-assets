@@ -1,33 +1,46 @@
 import express from 'express';
+import crypto from 'crypto';
 import 'dotenv/config';
-import router from './routes';
-import { pool } from './db';
 import cookieParser from 'cookie-parser';
+
+import { pool } from './db';
 import { authMiddleware } from './auth';
 import authRoutes from './routes/auth.routes';
+import router from './routes';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-
-// server.ts (middleware order)
+/** ---- Core middleware (order matters) ---- */
 app.use(express.static('public'));
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(authMiddleware);            // must be before API routes
 
-app.use('/auth', authRoutes);
-app.use('/', router);               // <-- mount your API routes here (you were missing this)
+// Auth first so req.user/tenantId are available
+app.use(authMiddleware);
 
+// ✅ Set Postgres audit ctx BEFORE any routes
+app.use((req: any, _res, next) => {
+  const userId =
+    req.user?.id ||
+    (req.headers['x-user-id'] as string) || // dev/testing fallback
+    'anonymous';
 
-// Simple request logger (optional)
-app.use((req, _res, next) => {
-  console.log(`${req.method} ${req.url}`);
+  req._pgCtx = {
+    userId,
+    reqId: crypto.randomUUID(),
+  };
   next();
 });
 
-// Health checks
+// (Optional) very light request log
+app.use((req, _res, next) => {
+  console.log(`${req.method} ${req.url} uid=${(req as any)._pgCtx?.userId}`);
+  next();
+});
+
+/** ---- Health & basic pages ---- */
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
 app.get('/health/db', async (_req, res) => {
@@ -40,7 +53,6 @@ app.get('/health/db', async (_req, res) => {
   }
 });
 
-// in server.ts (after health routes, before app.use('/', router))
 app.get('/', (_req, res) => {
   res.send(`<!doctype html>
   <h1>Fixed Assets</h1>
@@ -52,17 +64,17 @@ app.get('/', (_req, res) => {
   </ul>`);
 });
 
+/** ---- Routes ---- */
+app.use('/auth', authRoutes);
+app.use('/', router); // mount once
 
-// Mount all API routes
-app.use('/', router);
-
-// Global error handler (catch-all)
+/** ---- Global error handler ---- */
 app.use((err: any, _req: any, res: any, _next: any) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start server
+/** ---- Start ---- */
 app.listen(PORT, () => {
   console.log(`✅ API running on http://localhost:${PORT}`);
 });
