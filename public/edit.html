@@ -1,0 +1,65 @@
+<!doctype html><meta charset="utf-8"><title>Edit Asset by Tag</title>
+<h2>Edit Asset</h2>
+<form onsubmit="save(event)">
+  <label>Asset Tag</label>
+  <input id="tag" placeholder="A-0001" required>
+  <button type="button" onclick="load()">Load</button>
+  <hr>
+  <label>Description</label>
+  <input id="description" placeholder="New description">
+  <label>Cost</label>
+  <input id="cost" placeholder="1200.00">
+  <label>Location</label>
+  <select id="location"></select>
+  <button>Save</button>
+</form>
+<pre id="out"></pre>
+
+<script>
+const TENANT = '3f6b2d0a-9b1e-4d3c-a8c1-bb2a1c4e7d90';
+
+async function loadLocations(){
+  const res = await fetch('/locations');
+  const locs = await res.json();
+  const sel = document.getElementById('location');
+  sel.innerHTML = '<option value="">(no change)</option>';
+  locs.forEach(l=>{
+    const o=document.createElement('option');
+    o.value=l.id; o.textContent=l.code+' - '+l.name;
+    sel.appendChild(o);
+  });
+}
+loadLocations();
+
+async function load(){
+  const tag = document.getElementById('tag').value.trim();
+  if (!tag) return;
+  const res = await fetch('/assets/by-tag/'+encodeURIComponent(tag));
+  const txt = await res.text();
+  if (!res.ok) { document.getElementById('out').textContent = txt; return; }
+  const a = JSON.parse(txt);
+  document.getElementById('description').value = a.description || '';
+  document.getElementById('cost').value = a.acquisition_cost || '';
+  document.getElementById('location').value = a.location_id || '';
+  document.getElementById('out').textContent = 'Loaded '+a.asset_tag;
+}
+
+async function save(e){
+  e.preventDefault();
+  const tag = document.getElementById('tag').value.trim();
+  const body = {};
+  const d = document.getElementById('description').value.trim();
+  const c = document.getElementById('cost').value.trim();
+  const l = document.getElementById('location').value;
+  if (d) body.description = d;
+  if (c) body.acquisition_cost = c;
+  if (l) body.location_id = l;
+
+  const res = await fetch('/assets/by-tag/'+encodeURIComponent(tag), {
+    method:'PATCH',
+    headers:{ 'content-type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  document.getElementById('out').textContent = await res.text();
+}
+</script>

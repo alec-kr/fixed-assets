@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Create Asset</title>
+<body>
+  <h2>Create New Asset</h2>
+  <form onsubmit="submitForm(event)">
+    <input name="asset_tag" placeholder="A-0001" required>
+    <input name="description" placeholder="Description" required>
+    <select id="category" name="category_id" required></select>
+    <input name="acquisition_cost" placeholder="1200.00" required>
+    <select id="currency" name="currency" required></select>
+    <select id="location" name="location_id" required></select>
+    <button>Create</button>
+  </form>
+  <pre id="out"></pre>
+
+  <script>
+  async function submitForm(e){
+    e.preventDefault();
+    const form = new FormData(e.target);
+    const body = Object.fromEntries(form.entries());
+    const res = await fetch('/assets', {
+      method:'POST',
+      headers:{
+        'content-type':'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    document.getElementById('out').textContent = await res.text();
+  }
+
+  async function loadCategories() {
+    const res = await fetch('/categories');
+    const cats = await res.json();
+    const sel = document.getElementById('category');
+    cats.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.code + ' - ' + c.name;
+      sel.appendChild(opt);
+    });
+  }
+
+  async function loadLocations() {
+    const res = await fetch('/locations');
+    const locs = await res.json();
+    const sel = document.getElementById('location');
+    locs.forEach(l => {
+      const opt = document.createElement('option');
+      opt.value = l.id;
+      opt.textContent = l.code + ' - ' + l.name;
+      sel.appendChild(opt);
+    });
+  }
+
+  async function loadCurrencies() {
+    const res = await fetch('/currencies');
+    const currs = await res.json();
+    const sel = document.getElementById('currency');
+    currs.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.code;
+      opt.textContent = c.code + ' - ' + c.name;
+      sel.appendChild(opt);
+    });
+  }
+
+  loadCategories();
+  loadLocations();
+  loadCurrencies();
+  </script>
+</body>
+</html>

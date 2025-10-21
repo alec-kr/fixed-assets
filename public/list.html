@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Asset Register</title>
+<body>
+  <h2>Asset Register</h2>
+  <table id="assetTable" border="1" cellspacing="0" cellpadding="6">
+    <thead>
+      <tr>
+        <th>Tag</th>
+        <th>Description</th>
+        <th>Category</th>
+        <th>Cost</th>
+        <th>Currency</th>
+        <th>Location</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+  async function loadAssets() {
+    const res = await fetch('/assets/list');
+    const assets = await res.json();
+    const tbody = document.querySelector('#assetTable tbody');
+    tbody.innerHTML = '';
+    assets.forEach(a => {
+      const row = document.createElement('tr');
+      row.innerHTML =
+        '<td>' + a.asset_tag + '</td>' +
+        '<td>' + a.description + '</td>' +
+        '<td>' + (a.category || '-') + '</td>' +
+        '<td>' + a.acquisition_cost + '</td>' +
+        '<td>' + a.currency + '</td>' +
+        '<td>' + (a.location || '-') + '</td>' +
+        '<td>' + new Date(a.created_at).toLocaleString() + '</td>';
+      tbody.appendChild(row);
+    });
+  }
+
+  loadAssets();
+  </script>
+</body>
+</html>

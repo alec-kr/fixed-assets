@@ -1,0 +1,24 @@
+<!doctype html><meta charset="utf-8"><title>Sign in</title>
+<h2>Sign in</h2>
+<form onsubmit="login(event)">
+  <input name="email" placeholder="email" required>
+  <input name="password" type="password" placeholder="password" required>
+  <button>Sign in</button>
+</form>
+<p><a href="/list.html">Go to Asset List</a></p>
+<pre id="out"></pre>
+<script>
+async function login(e){
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const body = Object.fromEntries(f.entries());
+  const r = await fetch('/auth/login', {
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  const txt = await r.text();
+  document.getElementById('out').textContent = txt;
+  if(r.ok){ location.href = '/'; } // redirect after login
+}
+</script>
